@@ -5,7 +5,7 @@
 
 # Environments
 .idea
-#.env
+.env
 .venv
 env/
 venv/
