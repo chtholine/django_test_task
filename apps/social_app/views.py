@@ -1,7 +1,7 @@
 from django.contrib.auth import logout, authenticate, login
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets, status, permissions, generics
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,7 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, Post
 from .serializers import UserSerializer, PostSerializer, LikeSerializer
 from rest_framework.permissions import IsAuthenticated
-from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Count
 
@@ -104,14 +103,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        last_login = user.last_login
-        last_request = timezone.now()
-        user.save()
-
         return Response({
             'user_id': user.id,
-            'last_login': last_login,
-            'last_request': last_request
+            'last_login': user.last_login,
+            'last_request': user.last_request_time
         })
 
 
@@ -170,17 +165,16 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = LikeSerializer(data=request.data)
-        if serializer.is_valid():
-            if user in post.liked_by.all():
-                post.liked_by.remove(user)
-                return Response({'message': f"Post '{post.title}' with id:{post.id} unliked successfully"},
-                                status=status.HTTP_200_OK)
-            else:
-                post.liked_by.add(user)
-                return Response({'message': f"Post '{post.title}' with id:{post.id} liked successfully"},
-                                status=status.HTTP_200_OK)
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if user in post.liked_by.all():
+            post.liked_by.remove(user)
+            return Response({'message': f"Post '{post.title}' with id:{post.id} unliked successfully"},
+                            status=status.HTTP_200_OK)
+        else:
+            post.liked_by.add(user)
+            return Response({'message': f"Post '{post.title}' with id:{post.id} liked successfully"},
+                            status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -215,19 +209,3 @@ class PostViewSet(viewsets.ModelViewSet):
         )
 
         return Response({'analytics': list(analytics_data)}, status=status.HTTP_200_OK)
-
-
-class UserActivityViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
-
-    def list(self, request):
-        user = request.user
-        last_login = user.last_login
-        last_request = timezone.now()
-
-        user.save()  # Save user to update the last_request time
-
-        return Response({
-            'last_login': last_login,
-            'last_request': last_request
-        })
