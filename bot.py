@@ -95,8 +95,7 @@ def like_posts(username, headers):
     all_posts = get_all_posts(headers)
     shuffle(all_posts)
 
-    likes_to_give = min(config['max_likes_per_user'], len(all_posts))
-    for j in range(likes_to_give):
+    for j in range(randint(1, min(config['max_likes_per_user'], len(all_posts)))):
         post = all_posts[j]
         post_id = post['id']
         like_data = {"post_id": post_id}
