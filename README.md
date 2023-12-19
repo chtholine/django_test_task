@@ -1,5 +1,5 @@
 #### Getting started
-Install requirements `pip install requirements.txt`
+Install requirements `pip install -r requirements.txt`
 
 #### Basic django commands:
 * make migrations `python manage.py makemigrations`
